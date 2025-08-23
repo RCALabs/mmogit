@@ -1,0 +1,19 @@
+[package]
+name = "mmogit"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.99"
+bip39 = { version = "2.2.0", features = ["rand"] }
+chrono = "0.4.41"
+clap = { version = "4.5.45", features = ["derive"] }
+clearscreen = "4.0.2"
+dialoguer = "0.12.0"
+dirs = "6.0.0"
+ed25519-dalek = "2.2.0"
+git2 = "0.20.2"
+hex = "0.4.3"
+rand = "0.9.2"
+serde = "1.0.219"
+serde_json = "1.0.143"
