@@ -19,6 +19,7 @@ use dialoguer::{Confirm, Input};
 use ed25519_dalek::SigningKey;
 use rand::seq::SliceRandom;
 use std::fs;
+use std::path::Path;
 
 /// Initialize a new sovereign identity
 ///
@@ -40,7 +41,7 @@ use std::fs;
 ///
 /// Following WET principle - we don't know what shape the abstraction
 /// should take until we implement recovery and loading. First make it work.
-pub fn init(no_verify: bool) -> Result<()> {
+pub fn init(no_verify: bool, config_dir: &Path) -> Result<()> {
     println!("🔐 Generating 24-word seed phrase...\n");
 
     // Generate mnemonic with maximum entropy
@@ -111,11 +112,9 @@ pub fn init(no_verify: bool) -> Result<()> {
     // Save to ~/.mmogit/ (NOT in repo - repos are public, seeds are sovereign)
     // TODO: When we need to load this, we'll figure out the format
     // For now, just save the raw mnemonic - simple and works
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("No home dir"))?;
-    let mmogit_dir = home.join(".mmogit");
-    fs::create_dir_all(&mmogit_dir)?;
+    fs::create_dir_all(config_dir)?;
 
-    let seed_path = mmogit_dir.join(".seed");
+    let seed_path = config_dir.join(".seed");
     fs::write(&seed_path, mnemonic.to_string())?;
 
     // Set restrictive permissions on Unix-like systems
@@ -127,7 +126,7 @@ pub fn init(no_verify: bool) -> Result<()> {
     }
 
     println!("\n✨ Identity created!");
-    println!("📍 Saved to: {}", mmogit_dir.display());
+    println!("📍 Saved to: {}", config_dir.display());
     println!("🔑 Public key: {}", hex::encode(public_key.as_bytes()));
 
     Ok(())

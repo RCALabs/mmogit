@@ -33,7 +33,10 @@ use anyhow::Result;
 use clap::Parser;
 
 mod identity;
+mod memory;
 mod post;
+mod show;
+mod sync;
 
 /// Command-line interface for mmogit
 ///
@@ -51,6 +54,10 @@ pub struct Cli {
     /// Verbosity level (-v, -vv, -vvv)
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
+
+    /// Directory for mmogit configuration and identity (default: ~/.mmogit)
+    #[arg(long, global = true)]
+    config_dir: Option<std::path::PathBuf>,
 
     #[command(subcommand)]
     pub command: Commands,
@@ -107,6 +114,53 @@ pub enum Commands {
     /// Encrypted messages are transparently decrypted if keys are available.
     /// Invalid signatures should be clearly marked but still displayed.
     Show,
+
+    /// Post a structured memory (observation, learning, relationship, etc.)
+    ///
+    /// # Agent Memory Note
+    ///
+    /// Use this for semantically rich memories that can be searched and analyzed.
+    /// Structured memories enable pattern detection and behavioral awareness.
+    Remember {
+        /// Type of memory: observation, learning, relationship, task, experience, reflection, question
+        #[arg(short = 't', long)]
+        memory_type: String,
+
+        /// The main content of the memory
+        content: String,
+
+        /// Optional tags for categorization (comma-separated)
+        #[arg(long)]
+        tags: Option<String>,
+
+        /// Optional confidence level for observations (0.0 to 1.0)
+        #[arg(long)]
+        confidence: Option<f32>,
+    },
+
+    /// Recall memories based on filters
+    ///
+    /// # Agent Recall Note
+    ///
+    /// This is how you retrieve past thoughts. Use filters to find specific
+    /// memories or patterns across your history.
+    Recall {
+        /// Filter by memory type
+        #[arg(short = 't', long)]
+        memory_type: Option<String>,
+
+        /// Filter by tag
+        #[arg(long)]
+        tag: Option<String>,
+
+        /// Show only memories from the last N hours
+        #[arg(long)]
+        hours: Option<u32>,
+
+        /// Show only high-confidence observations (threshold 0-1)
+        #[arg(long)]
+        confidence: Option<f32>,
+    },
 }
 
 fn main() -> Result<()> {
@@ -124,6 +178,13 @@ fn main() -> Result<()> {
 
     // TODO: Initialize tracing subscriber here
 
+    // Determine config directory (for identity and messages)
+    let config_dir = cli.config_dir.unwrap_or_else(|| {
+        dirs::home_dir()
+            .expect("Cannot find home directory")
+            .join(".mmogit")
+    });
+
     match cli.command {
         Commands::Init { seed, no_verify } => {
             // INVARIANT: Identity generation must be deterministic
@@ -132,26 +193,90 @@ fn main() -> Result<()> {
                 println!("Recovering from seed phrase");
                 // TODO: Validate BIP39 before proceeding
             } else {
-                identity::init(no_verify)?
+                identity::init(no_verify, &config_dir)?;
             }
             Ok(())
         }
         Commands::Post { message } => {
             // INVARIANT: Every message must be signed
             // Unsigned messages are protocol violations
-            post::post(&message)
+            post::post(&message, &config_dir)
         }
         Commands::Sync => {
             // NOTE: This should be idempotent - safe to run repeatedly
-            println!("Syncing with remotes...");
-            // TODO: Pull, resolve any conflicts, push
-            Ok(())
+            sync::sync(&config_dir)
         }
         Commands::Show => {
             // NOTE: Should work offline - never require network
-            println!("Showing messages...");
-            // TODO: Read from local repo, decrypt if possible, verify signatures
+            show::show(&config_dir)
+        }
+        Commands::Remember {
+            memory_type,
+            content,
+            tags,
+            confidence,
+        } => {
+            use crate::memory::StructuredMemory;
+
+            // Parse tags if provided
+            let tag_list = tags
+                .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
+                .unwrap_or_default();
+
+            // Create appropriate memory type
+            let memory = match memory_type.as_str() {
+                "observation" => {
+                    let conf = confidence.unwrap_or(0.5);
+                    StructuredMemory::observe(&content, &content, conf)
+                }
+                "learning" => StructuredMemory::learn(&content, &content, "interactive session"),
+                "reflection" => StructuredMemory::reflect(
+                    &content,
+                    false,
+                    memory::ReflectionSignificance::Notable,
+                ),
+                "question" => {
+                    StructuredMemory::question(&content, "session", memory::Priority::Medium)
+                }
+                _ => {
+                    println!("Unknown memory type: {}. Using observation.", memory_type);
+                    StructuredMemory::observe(&content, &content, confidence.unwrap_or(0.5))
+                }
+            }
+            .with_tags(tag_list);
+
+            // Convert to JSON and post
+            let json_content = memory.to_message()?;
+            post::post(&json_content, &config_dir)?;
+
+            println!("💭 Structured memory posted: {}", memory_type);
             Ok(())
+        }
+        Commands::Recall {
+            memory_type,
+            tag,
+            hours,
+            confidence,
+        } => {
+            // For now, use regular show with a note about structured memories
+            println!("🔍 Recalling memories...");
+            if let Some(t) = memory_type {
+                println!("   Filter: type={}", t);
+            }
+            if let Some(tg) = tag {
+                println!("   Filter: tag={}", tg);
+            }
+            if let Some(h) = hours {
+                println!("   Filter: last {} hours", h);
+            }
+            if let Some(c) = confidence {
+                println!("   Filter: confidence >= {}", c);
+            }
+            println!();
+
+            // TODO: Implement filtered retrieval using memory index
+            // For now, show all messages
+            show::show(&config_dir)
         }
     }
 }

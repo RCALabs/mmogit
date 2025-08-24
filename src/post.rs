@@ -51,10 +51,9 @@ struct Message {
 ///
 /// Yes, we're duplicating the seed loading from init.rs. That's intentional.
 /// We'll refactor when we see the pattern clearly (probably after `show`).
-pub fn post(content: &str) -> Result<()> {
+pub fn post(content: &str, config_dir: &std::path::Path) -> Result<()> {
     // Load the seed (duplicated from init - that's OK for now)
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("No home dir"))?;
-    let seed_path = home.join(".mmogit").join(".seed");
+    let seed_path = config_dir.join(".seed");
 
     let seed_phrase =
         fs::read_to_string(&seed_path).context("No identity found. Run 'mmogit init' first")?;
@@ -83,47 +82,59 @@ pub fn post(content: &str) -> Result<()> {
     };
 
     // Use dedicated messages repository
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("No home dir"))?;
-    let repo_path = home.join(".mmogit").join("messages");
+    let repo_path = config_dir.join("messages");
 
     // Initialize or open git repo
     let repo = match Repository::open(&repo_path) {
         Ok(repo) => repo,
         Err(_) => {
-            println!("📁 Initializing messages repository at ~/.mmogit/messages/");
+            println!(
+                "📁 Initializing messages repository at {}",
+                repo_path.display()
+            );
             fs::create_dir_all(&repo_path)?;
             Repository::init(&repo_path)?
         }
     };
 
-    // Save message directly in repo root with timestamp as filename
+    // IMPORTANT: Use per-sender branches to avoid merge conflicts
+    let branch_name = format!("refs/heads/users/{}", &author[..8]);
+    let branch_short = format!("users/{}", &author[..8]);
+
+    // Check if our branch exists and switch to it BEFORE file operations
+    let branch_exists = repo
+        .find_branch(&branch_short, git2::BranchType::Local)
+        .is_ok();
+
+    if branch_exists {
+        // Branch exists, switch to it first
+        repo.set_head(&branch_name)?;
+        repo.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
+    }
+
+    // NOW save message to disk (after we're on the right branch)
     let filename = format!("{}.json", timestamp.replace([':', '-', '.'], "_"));
     let file_path = repo_path.join(&filename);
     let json = serde_json::to_string_pretty(&message)?;
     fs::write(&file_path, json)?;
 
-    // IMPORTANT: Use per-sender branches to avoid merge conflicts
-    // Each sender writes only to refs/heads/users/<pubkey_fingerprint>
-    // This is the key to avoiding merge storms under concurrent writes
-    let branch_name = format!("refs/heads/users/{}", &author[..8]);
-    let branch_short = format!("users/{}", &author[..8]);
-
-    // Add and commit to our branch
+    // Add and commit
     let mut index = repo.index()?;
+
+    // CRITICAL: If creating a new branch, clear the index first
+    // This ensures the orphan branch only contains our new message
+    if !branch_exists {
+        index.clear()?;
+    }
+
     index.add_path(Path::new(&filename))?;
     index.write()?;
 
     let tree_id = index.write_tree()?;
     let tree = repo.find_tree(tree_id)?;
 
-    let branch_exists = repo
-        .find_branch(&branch_short, git2::BranchType::Local)
-        .is_ok();
-
     if branch_exists {
-        // Branch exists, switch to it and commit normally
-        repo.set_head(&branch_name)?;
-        repo.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
+        // We're already on the branch, just commit
 
         let parent_commit = repo
             .head()
@@ -157,7 +168,7 @@ pub fn post(content: &str) -> Result<()> {
         let commit = repo.find_commit(commit_oid)?;
         repo.branch(&branch_short, &commit, false)?;
 
-        // Set HEAD to the new branch
+        // Set HEAD to the new branch and checkout
         repo.set_head(&branch_name)?;
         repo.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
     }
