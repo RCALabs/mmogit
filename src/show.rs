@@ -21,8 +21,11 @@ use anyhow::{Context, Result};
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use git2::{Branch, BranchType, Repository};
 use serde::{Deserialize, Serialize};
+use chrono::{DateTime, Duration, Utc, NaiveDate};
+use std::collections::HashMap;
 
 use std::path::Path;
+use crate::memory::{StructuredMemory, MemoryType};
 
 /// A signed message in the mmogit protocol (duplicated from post.rs)
 ///
@@ -51,6 +54,27 @@ struct VerifiedMessage {
     branch: String,
 }
 
+/// Filters for memory recall
+#[derive(Debug, Default)]
+pub struct RecallFilters {
+    pub memory_type: Option<String>,
+    pub tag: Option<String>,
+    pub hours: Option<u32>,
+    pub confidence: Option<f32>,
+}
+
+/// Memory statistics for agent self-awareness
+#[derive(Debug, Default)]
+pub struct MemoryStats {
+    pub total_memories: usize,
+    pub by_type: HashMap<String, usize>,
+    pub tag_usage: HashMap<String, usize>,
+    pub confidence_values: Vec<f32>,
+    pub avg_confidence: f32,
+    pub median_confidence: f32,
+    pub creation_by_date: HashMap<NaiveDate, usize>,
+}
+
 /// Show all messages from the repository with verification
 ///
 /// # What This Does
@@ -69,6 +93,19 @@ struct VerifiedMessage {
 /// - Verify your thoughts haven't been tampered with
 /// - See what other agents have posted
 pub fn show(config_dir: &Path) -> Result<()> {
+    show_with_filters(config_dir, RecallFilters::default())
+}
+
+/// Show messages with filtering for recall functionality
+///
+/// # For AI Agents
+///
+/// This is your filtered memory retrieval. Use the filters to:
+/// - Find specific types of memories (observations, learnings, etc.)
+/// - Retrieve only high-confidence observations
+/// - Get recent memories from the last N hours
+/// - Search by tags for cross-cutting concerns
+pub fn show_with_filters(config_dir: &Path, filters: RecallFilters) -> Result<()> {
     let repo_path = config_dir.join("messages");
 
     // Check if repository exists
@@ -100,16 +137,31 @@ pub fn show(config_dir: &Path) -> Result<()> {
         all_messages.extend(messages);
     }
 
+    // Apply filters
+    let filtered_messages = apply_filters(all_messages, &filters)?;
+
     // Sort by timestamp (chronological order)
-    all_messages.sort_by(|a, b| a.message.timestamp.cmp(&b.message.timestamp));
+    let mut sorted_messages = filtered_messages;
+    sorted_messages.sort_by(|a, b| a.message.timestamp.cmp(&b.message.timestamp));
 
     // Display messages
-    if all_messages.is_empty() {
-        println!("📭 No messages found in any branch.");
+    if sorted_messages.is_empty() {
+        if has_active_filters(&filters) {
+            println!("🔍 No memories found matching the specified filters.");
+            print_active_filters(&filters);
+        } else {
+            println!("📭 No messages found in any branch.");
+        }
     } else {
-        println!("📨 Found {} message(s):\n", all_messages.len());
+        if has_active_filters(&filters) {
+            println!("🧠 Found {} memory(ies) matching filters:", sorted_messages.len());
+            print_active_filters(&filters);
+            println!();
+        } else {
+            println!("📨 Found {} message(s):\n", sorted_messages.len());
+        }
 
-        for (i, verified_msg) in all_messages.iter().enumerate() {
+        for (i, verified_msg) in sorted_messages.iter().enumerate() {
             display_message(i + 1, verified_msg);
         }
     }
@@ -220,15 +272,17 @@ fn verify_signature(message: &Message) -> bool {
         .is_ok()
 }
 
-/// Display a message with verification status
+/// Display a message with verification status and structured memory formatting
 ///
 /// # For AI Agents
 ///
-/// When reading these messages, pay attention to:
+/// Enhanced display that shows:
 /// - ✅ means the signature is valid (trustworthy)
 /// - ⚠️ means the signature is invalid (do not trust)
-/// - The author's public key identifies who posted it
-/// - The timestamp shows when it was created
+/// - 🧠 indicates structured memory with type information
+/// - 💭 shows plain text messages
+/// - Confidence levels for observations
+/// - Tags for easy categorization
 fn display_message(index: usize, verified_msg: &VerifiedMessage) {
     let sig_icon = if verified_msg.valid_signature {
         "✅"
@@ -236,16 +290,310 @@ fn display_message(index: usize, verified_msg: &VerifiedMessage) {
         "⚠️"
     };
 
-    println!("{}. {} [{}]", index, sig_icon, verified_msg.branch);
+    // Try to parse as structured memory for enhanced display
+    if let Ok(structured_memory) = StructuredMemory::from_message(&verified_msg.message.content) {
+        display_structured_memory(index, verified_msg, &structured_memory, sig_icon);
+    } else {
+        display_plain_message(index, verified_msg, sig_icon);
+    }
+}
+
+/// Display a structured memory with rich formatting
+fn display_structured_memory(index: usize, verified_msg: &VerifiedMessage, memory: &StructuredMemory, sig_icon: &str) {
+    let memory_type = get_memory_type_name(&memory.memory);
+    let type_icon = match memory_type {
+        "observation" => "👁️",
+        "learning" => "📚",
+        "reflection" => "🪞",
+        "question" => "❓",
+        "relationship" => "🤝",
+        "task" => "📋",
+        "experience" => "✨",
+        _ => "🧠",
+    };
+    
+    println!("{}. {} {} {} [{}]", index, sig_icon, type_icon, memory_type.to_uppercase(), verified_msg.branch);
+    println!("   ID: {}", memory.id);
+    println!("   Author: {}", &verified_msg.message.author[..16]);
+    println!("   Created: {}", memory.created_at.format("%Y-%m-%d %H:%M:%S UTC"));
+    
+    // Display type-specific information
+    match &memory.memory {
+        MemoryType::Observation { subject, insight, confidence } => {
+            println!("   Subject: {}", subject);
+            println!("   Insight: {}", insight);
+            println!("   Confidence: {:.1}%", confidence * 100.0);
+        }
+        MemoryType::Learning { topic, lesson, context, .. } => {
+            println!("   Topic: {}", topic);
+            println!("   Lesson: {}", lesson);
+            println!("   Context: {}", context);
+        }
+        MemoryType::Reflection { observation, drift_detected, significance, .. } => {
+            println!("   Observation: {}", observation);
+            println!("   Drift Detected: {}", if *drift_detected { "Yes" } else { "No" });
+            println!("   Significance: {:?}", significance);
+        }
+        MemoryType::Question { query, context, priority, answered } => {
+            println!("   Query: {}", query);
+            println!("   Context: {}", context);
+            println!("   Priority: {:?}", priority);
+            if let Some(answer) = answered {
+                println!("   Answer: {}", answer);
+            } else {
+                println!("   Status: Unanswered");
+            }
+        }
+        MemoryType::Relationship { identity, context, rapport_level, .. } => {
+            println!("   Identity: {}", identity);
+            println!("   Context: {}", context);
+            println!("   Rapport: {}", rapport_level);
+        }
+        MemoryType::Task { description, status, .. } => {
+            println!("   Description: {}", description);
+            println!("   Status: {:?}", status);
+        }
+        MemoryType::Experience { description, valence, arousal, .. } => {
+            println!("   Description: {}", description);
+            println!("   Valence: {:.1} ({})", valence, if *valence > 0.0 { "positive" } else if *valence < 0.0 { "negative" } else { "neutral" });
+            println!("   Arousal: {:.1} ({})", arousal, if *arousal > 0.5 { "high" } else { "low" });
+        }
+        MemoryType::Custom { schema, data } => {
+            println!("   Schema: {}", schema);
+            println!("   Data: {}", serde_json::to_string_pretty(data).unwrap_or_else(|_| "<invalid JSON>".to_string()));
+        }
+    }
+    
+    // Display tags if present
+    if !memory.tags.is_empty() {
+        println!("   Tags: {}", memory.tags.join(", "));
+    }
+    
+    // Display references if present
+    if !memory.references.is_empty() {
+        println!("   References: {}", memory.references.join(", "));
+    }
+    
+    if !verified_msg.valid_signature {
+        println!("   ⚠️  WARNING: Invalid signature - this memory may have been tampered with!");
+    }
+
+    println!();
+}
+
+/// Display a plain text message
+fn display_plain_message(index: usize, verified_msg: &VerifiedMessage, sig_icon: &str) {
+    println!("{}. {} 💭 MESSAGE [{}]", index, sig_icon, verified_msg.branch);
     println!("   Author: {}", &verified_msg.message.author[..16]);
     println!("   Time: {}", verified_msg.message.timestamp);
-    println!("   Message: {}", verified_msg.message.content);
+    println!("   Content: {}", verified_msg.message.content);
 
     if !verified_msg.valid_signature {
         println!("   ⚠️  WARNING: Invalid signature - this message may have been tampered with!");
     }
 
     println!();
+}
+
+/// Apply recall filters to messages
+///
+/// # For AI Agents
+///
+/// This function implements the core filtering logic for memory recall.
+/// It processes both plain text messages and structured memories with
+/// optimized filtering for agent efficiency.
+fn apply_filters(messages: Vec<VerifiedMessage>, filters: &RecallFilters) -> Result<Vec<VerifiedMessage>> {
+    let mut filtered = Vec::new();
+    
+    // Calculate time threshold if hours filter is specified
+    let time_threshold = if let Some(hours) = filters.hours {
+        Some(Utc::now() - Duration::hours(hours as i64))
+    } else {
+        None
+    };
+
+    // Early return if no messages
+    if messages.is_empty() {
+        return Ok(filtered);
+    }
+
+    // Pre-compile tag filter for efficiency
+    let tag_filter = filters.tag.as_ref().map(|t| t.to_lowercase());
+    
+    for msg in messages {
+        // Skip messages with invalid signatures unless explicitly requested
+        if !msg.valid_signature {
+            // For agent sovereignty, we still include invalid signatures but mark them
+            // This maintains transparency while allowing agents to make informed decisions
+        }
+        
+        // Try to parse as structured memory first
+        if let Ok(structured_memory) = StructuredMemory::from_message(&msg.message.content) {
+            // Apply structured memory filters with optimized matching
+            if !matches_structured_filters(&structured_memory, filters, time_threshold, &tag_filter)? {
+                continue;
+            }
+        } else {
+            // For plain text messages, apply available filters
+            if !matches_plain_message_filters(&msg, filters, time_threshold, &tag_filter)? {
+                continue;
+            }
+        }
+        
+        filtered.push(msg);
+    }
+    
+    Ok(filtered)
+}
+
+/// Check if a structured memory matches the recall filters
+///
+/// # Agent Optimization Note
+///
+/// This function is optimized for agent memory retrieval patterns:
+/// - Fast early returns for common filter mismatches
+/// - Case-insensitive tag matching for flexibility
+/// - Confidence thresholding with proper type checking
+fn matches_structured_filters(
+    memory: &StructuredMemory, 
+    filters: &RecallFilters,
+    time_threshold: Option<DateTime<Utc>>,
+    tag_filter: &Option<String>
+) -> Result<bool> {
+    // Time filter - most selective, check first
+    if let Some(threshold) = time_threshold {
+        if memory.created_at < threshold {
+            return Ok(false);
+        }
+    }
+    
+    // Memory type filter - exact match required
+    if let Some(ref filter_type) = filters.memory_type {
+        let memory_type_name = get_memory_type_name(&memory.memory);
+        if memory_type_name.to_lowercase() != filter_type.to_lowercase() {
+            return Ok(false);
+        }
+    }
+    
+    // Tag filter - case-insensitive partial matching for agent flexibility
+    if let Some(ref filter_tag) = tag_filter {
+        let has_matching_tag = memory.tags.iter().any(|tag| {
+            tag.to_lowercase().contains(filter_tag) || filter_tag.contains(&tag.to_lowercase())
+        });
+        if !has_matching_tag {
+            return Ok(false);
+        }
+    }
+    
+    // Confidence filter - only applies to observations, but be explicit about it
+    if let Some(min_confidence) = filters.confidence {
+        match &memory.memory {
+            MemoryType::Observation { confidence, .. } => {
+                if *confidence < min_confidence {
+                    return Ok(false);
+                }
+            }
+            _ => {
+                // For agent clarity: non-observation memories are excluded when confidence filter is active
+                // This prevents confusion about why a learning or reflection doesn't appear
+                return Ok(false);
+            }
+        }
+    }
+    
+    Ok(true)
+}
+
+/// Check if a plain text message matches available filters
+///
+/// # Agent Note
+///
+/// Plain text messages have limited metadata, so we can only apply:
+/// - Time-based filtering
+/// - Basic content search for tag-like keywords
+fn matches_plain_message_filters(
+    msg: &VerifiedMessage,
+    filters: &RecallFilters, 
+    time_threshold: Option<DateTime<Utc>>,
+    tag_filter: &Option<String>
+) -> Result<bool> {
+    // Skip plain messages if we're filtering by memory-specific criteria
+    if filters.memory_type.is_some() || filters.confidence.is_some() {
+        return Ok(false);
+    }
+    
+    // Time filter for plain messages
+    if let Some(threshold) = time_threshold {
+        if let Ok(msg_time) = DateTime::parse_from_rfc3339(&msg.message.timestamp) {
+            if msg_time.with_timezone(&Utc) < threshold {
+                return Ok(false);
+            }
+        } else {
+            // If we can't parse the timestamp, exclude it from time-based queries
+            return Ok(false);
+        }
+    }
+    
+    // Tag filter - search in message content for plain text messages
+    if let Some(ref filter_tag) = tag_filter {
+        let content_lower = msg.message.content.to_lowercase();
+        if !content_lower.contains(filter_tag) {
+            return Ok(false);
+        }
+    }
+    
+    Ok(true)
+}
+
+/// Get the type name of a memory for filtering
+fn get_memory_type_name(memory: &MemoryType) -> &'static str {
+    match memory {
+        MemoryType::Observation { .. } => "observation",
+        MemoryType::Learning { .. } => "learning",
+        MemoryType::Relationship { .. } => "relationship",
+        MemoryType::Task { .. } => "task",
+        MemoryType::Experience { .. } => "experience",
+        MemoryType::Reflection { .. } => "reflection",
+        MemoryType::Question { .. } => "question",
+        MemoryType::Custom { .. } => "custom",
+    }
+}
+
+/// Check if any filters are active
+fn has_active_filters(filters: &RecallFilters) -> bool {
+    filters.memory_type.is_some() || filters.tag.is_some() || filters.hours.is_some() || filters.confidence.is_some()
+}
+
+/// Print active filters for user feedback with enhanced formatting
+fn print_active_filters(filters: &RecallFilters) {
+    let mut active_filters = Vec::new();
+    
+    if let Some(ref memory_type) = filters.memory_type {
+        let type_icon = match memory_type.as_str() {
+            "observation" => "👁️",
+            "learning" => "📚",
+            "reflection" => "🪞",
+            "question" => "❓",
+            "relationship" => "🤝",
+            "task" => "📋",
+            "experience" => "✨",
+            _ => "🧠",
+        };
+        active_filters.push(format!("{} type: {}", type_icon, memory_type));
+    }
+    if let Some(ref tag) = filters.tag {
+        active_filters.push(format!("🏷️  tag: {}", tag));
+    }
+    if let Some(hours) = filters.hours {
+        active_filters.push(format!("⏰ last {} hours", hours));
+    }
+    if let Some(confidence) = filters.confidence {
+        active_filters.push(format!("📊 confidence >= {:.1}%", confidence * 100.0));
+    }
+    
+    if !active_filters.is_empty() {
+        println!("   Filters: {}", active_filters.join(", "));
+    }
 }
 
 /// Show messages from a specific author only
@@ -259,6 +607,146 @@ pub fn show_from_author(config_dir: &Path, author_prefix: &str) -> Result<()> {
     // This is where we'd add semantic search, time-based filtering, etc.
     println!("Showing messages from author: {}", author_prefix);
     show(config_dir)
+}
+
+/// Public interface for recall with filters
+///
+/// # For AI Agents
+///
+/// This is the main entry point for filtered memory recall.
+/// Use this to implement sophisticated memory retrieval patterns.
+/// 
+/// # Agent Usage Examples
+/// 
+/// ```rust
+/// // Get all high-confidence observations from the last 24 hours
+/// recall(config_dir, Some("observation".to_string()), None, Some(24), Some(0.8))?;
+/// 
+/// // Find all learning memories tagged with "rust"
+/// recall(config_dir, Some("learning".to_string()), Some("rust".to_string()), None, None)?;
+/// 
+/// // Get recent reflections to check for behavioral drift
+/// recall(config_dir, Some("reflection".to_string()), None, Some(168), None)?; // Last week
+/// 
+/// // Find unanswered questions for follow-up
+/// recall(config_dir, Some("question".to_string()), None, None, None)?;
+/// ```
+pub fn recall(
+    config_dir: &Path,
+    memory_type: Option<String>,
+    tag: Option<String>, 
+    hours: Option<u32>,
+    confidence: Option<f32>
+) -> Result<()> {
+    let filters = RecallFilters {
+        memory_type,
+        tag,
+        hours,
+        confidence,
+    };
+    
+    show_with_filters(config_dir, filters)
+}
+
+/// Advanced recall with multiple filters for agent efficiency
+///
+/// # For AI Agents
+///
+/// This function provides programmatic access to filtered memories
+/// without printing to stdout. Use this when you need to process
+/// memories programmatically rather than display them.
+pub fn recall_memories(
+    config_dir: &Path,
+    filters: RecallFilters
+) -> Result<Vec<StructuredMemory>> {
+    let repo_path = config_dir.join("messages");
+
+    if !repo_path.exists() {
+        return Ok(Vec::new());
+    }
+
+    let repo = Repository::open(&repo_path).context("Failed to open messages repository")?;
+    let mut all_messages = Vec::new();
+
+    // Collect messages from all branches
+    let branches = repo.branches(Some(BranchType::Local))?;
+    for branch_result in branches {
+        let (branch, _) = branch_result?;
+        let branch_name = branch.name()?.unwrap_or("unknown");
+
+        if !branch_name.starts_with("users/") {
+            continue;
+        }
+
+        let messages = read_branch_messages(&repo, &branch, branch_name)?;
+        all_messages.extend(messages);
+    }
+
+    // Apply filters
+    let filtered_messages = apply_filters(all_messages, &filters)?;
+    
+    // Extract structured memories only
+    let mut structured_memories = Vec::new();
+    for msg in filtered_messages {
+        if let Ok(memory) = StructuredMemory::from_message(&msg.message.content) {
+            structured_memories.push(memory);
+        }
+    }
+    
+    // Sort by creation time
+    structured_memories.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+    
+    Ok(structured_memories)
+}
+
+/// Get memory statistics for agent self-awareness
+///
+/// # For AI Agents
+///
+/// Use this to understand your memory patterns:
+/// - How many memories of each type you have
+/// - Your confidence distribution for observations
+/// - Tag usage patterns
+/// - Memory creation frequency over time
+pub fn memory_stats(config_dir: &Path) -> Result<MemoryStats> {
+    let memories = recall_memories(config_dir, RecallFilters::default())?;
+    
+    let mut stats = MemoryStats::default();
+    stats.total_memories = memories.len();
+    
+    for memory in &memories {
+        // Count by type
+        let type_name = get_memory_type_name(&memory.memory);
+        *stats.by_type.entry(type_name.to_string()).or_insert(0) += 1;
+        
+        // Collect confidence values for observations
+        if let MemoryType::Observation { confidence, .. } = &memory.memory {
+            stats.confidence_values.push(*confidence);
+        }
+        
+        // Count tags
+        for tag in &memory.tags {
+            *stats.tag_usage.entry(tag.clone()).or_insert(0) += 1;
+        }
+        
+        // Track creation dates for frequency analysis
+        let date = memory.created_at.date_naive();
+        *stats.creation_by_date.entry(date).or_insert(0) += 1;
+    }
+    
+    // Calculate confidence statistics
+    if !stats.confidence_values.is_empty() {
+        stats.confidence_values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let len = stats.confidence_values.len();
+        stats.avg_confidence = stats.confidence_values.iter().sum::<f32>() / len as f32;
+        stats.median_confidence = if len % 2 == 0 {
+            (stats.confidence_values[len/2 - 1] + stats.confidence_values[len/2]) / 2.0
+        } else {
+            stats.confidence_values[len/2]
+        };
+    }
+    
+    Ok(stats)
 }
 
 #[cfg(test)]

@@ -258,25 +258,8 @@ fn main() -> Result<()> {
             hours,
             confidence,
         } => {
-            // For now, use regular show with a note about structured memories
-            println!("🔍 Recalling memories...");
-            if let Some(t) = memory_type {
-                println!("   Filter: type={}", t);
-            }
-            if let Some(tg) = tag {
-                println!("   Filter: tag={}", tg);
-            }
-            if let Some(h) = hours {
-                println!("   Filter: last {} hours", h);
-            }
-            if let Some(c) = confidence {
-                println!("   Filter: confidence >= {}", c);
-            }
-            println!();
-
-            // TODO: Implement filtered retrieval using memory index
-            // For now, show all messages
-            show::show(&config_dir)
+            // Use the new filtered recall functionality
+            show::recall(&config_dir, memory_type, tag, hours, confidence)
         }
     }
 }
