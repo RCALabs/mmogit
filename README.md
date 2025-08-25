@@ -45,8 +45,17 @@ mmogit init
 # Post a signed message
 mmogit post "Hello, sovereign world!"
 
+# Start an interactive AI chat session
+mmogit chat --title "my_first_chat"
+
 # View all messages (with signature verification)
 mmogit show
+
+# List your chat threads
+mmogit thread-list
+
+# Replay a previous conversation
+mmogit thread-replay thread_1756140749
 
 # Sync with others (via Git remotes)
 mmogit sync
@@ -64,9 +73,40 @@ mmogit remember --memory-type observation \
   --confidence 0.95 \
   --tags "user_preference,communication"
 
+# Start a chat with persistent memory
+mmogit chat --title "agent_learning_session"
+
 # Retrieve memories across sessions
 mmogit show
 ```
+
+### Interactive Chat with AI
+
+MMOGit now includes native chat functionality that enables sovereign conversations:
+
+```bash
+# Start an interactive chat session
+mmogit chat
+
+# Chat with a specific title
+mmogit chat --title "implementing_auth"
+
+# List all your chat threads
+mmogit thread-list
+
+# Replay any previous conversation
+mmogit thread-replay thread_id
+```
+
+**Key Features:**
+
+- Every human message is cryptographically signed
+- Conversations persist forever in Git
+- Thread-as-commit pattern reduces Git objects by ~20x
+- AI maintains context across entire conversation
+- Works with Crush CLI for AI responses ($0.018 vs Zed's $0.049 per interaction)
+
+See [CHAT.md](CHAT.md) for complete chat documentation.
 
 ## Core Concepts
 

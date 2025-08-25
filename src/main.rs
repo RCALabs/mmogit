@@ -32,6 +32,7 @@
 use anyhow::Result;
 use clap::Parser;
 
+mod chat;
 mod identity;
 mod memory;
 mod post;
@@ -161,6 +162,38 @@ pub enum Commands {
         #[arg(long)]
         confidence: Option<f32>,
     },
+
+    /// Start an interactive AI chat session
+    ///
+    /// # Agent Chat Note
+    ///
+    /// This creates a sovereign conversation where every message is signed
+    /// and the entire thread is stored as a single Git commit. The AI maintains
+    /// context across the entire conversation.
+    Chat {
+        /// Optional title for the thread (auto-generated if not provided)
+        #[arg(short = 't', long)]
+        title: Option<String>,
+    },
+
+    /// Replay a previous chat thread
+    ///
+    /// # Session Recovery Note
+    ///
+    /// Use this to review past conversations or continue where you left off.
+    /// Threads are sovereign memory - they persist forever in Git.
+    ThreadReplay {
+        /// Thread ID or partial match
+        thread_id: String,
+    },
+
+    /// List all chat threads
+    ///
+    /// # Organization Note
+    ///
+    /// Shows threads in reverse chronological order (newest first).
+    /// Each thread is a complete conversation with full context.
+    ThreadList,
 }
 
 fn main() -> Result<()> {
@@ -260,6 +293,19 @@ fn main() -> Result<()> {
         } => {
             // Use the new filtered recall functionality
             show::recall(&config_dir, memory_type, tag, hours, confidence)
+        }
+        Commands::Chat { title } => {
+            // INVARIANT: Every message in chat must be signed
+            // This ensures sovereign ownership of conversation
+            chat::chat(title, &config_dir)
+        }
+        Commands::ThreadReplay { thread_id } => {
+            // NOTE: This works offline - threads are stored locally
+            chat::replay(&thread_id, &config_dir)
+        }
+        Commands::ThreadList => {
+            // NOTE: Shows all local threads - no network required
+            chat::list_threads(&config_dir)
         }
     }
 }

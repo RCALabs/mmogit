@@ -1,0 +1,31 @@
+Panic in main: runtime error: slice bounds out of range [256:0]
+
+Time: 2025-08-25T14:03:02-04:00
+
+Stack Trace:
+goroutine 1 [running]:
+runtime/debug.Stack()
+	/opt/hostedtoolcache/go/1.25.0/x64/src/runtime/debug/stack.go:26 +0x64
+github.com/charmbracelet/crush/internal/log.RecoverPanic({0x1013b5d4e, 0x4}, 0x101fd48c0)
+	/home/runner/work/crush/crush/internal/log/log.go:62 +0x1b8
+panic({0x101e84620?, 0x14003ba8d98?})
+	/opt/hostedtoolcache/go/1.25.0/x64/src/runtime/panic.go:783 +0x120
+github.com/charmbracelet/crush/internal/app.(*App).RunNonInteractive(0x14001eb0d20, {0x1020021f8, 0x14000229b00}, {0x14003e29000, 0x2e8a}, 0x0)
+	/home/runner/work/crush/crush/internal/app/app.go:186 +0xaec
+github.com/charmbracelet/crush/internal/cmd.init.func3(0x102fa6da0, {0x0, 0x0, 0x0})
+	/home/runner/work/crush/crush/internal/cmd/run.go:52 +0x1ec
+github.com/spf13/cobra.(*Command).execute(0x102fa6da0, {0x103018d40, 0x0, 0x0})
+	/home/runner/go/pkg/mod/github.com/spf13/cobra@v1.9.1/command.go:1015 +0x7d4
+github.com/spf13/cobra.(*Command).ExecuteC(0x102fa6ae0)
+	/home/runner/go/pkg/mod/github.com/spf13/cobra@v1.9.1/command.go:1148 +0x350
+github.com/spf13/cobra.(*Command).Execute(...)
+	/home/runner/go/pkg/mod/github.com/spf13/cobra@v1.9.1/command.go:1071
+github.com/spf13/cobra.(*Command).ExecuteContext(...)
+	/home/runner/go/pkg/mod/github.com/spf13/cobra@v1.9.1/command.go:1064
+github.com/charmbracelet/fang.Execute({0x1020019a0, 0x103018d40}, 0x102fa6ae0, {0x140004e9ec8, 0x2, 0xd?})
+	/home/runner/go/pkg/mod/github.com/charmbracelet/fang@v0.3.1-0.20250711140230-d5ebb8c1d674/fang.go:169 +0x2c4
+github.com/charmbracelet/crush/internal/cmd.Execute()
+	/home/runner/work/crush/crush/internal/cmd/root.go:88 +0xbc
+main.main()
+	/home/runner/work/crush/crush/main.go:30 +0x68
+

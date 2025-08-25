@@ -1,0 +1,63 @@
+{
+    "name": "MMOGit Sovereign Development",
+    "dockerFile": "Dockerfile",
+
+    "features": {
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/node:1": {},
+        "ghcr.io/devcontainers/features/go:1": {}
+    },
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "rust-lang.rust-analyzer",
+                "vadimcn.vscode-lldb",
+                "serayuzgur.crates",
+                "tamasfe.even-better-toml",
+                "golang.go",
+                "charm.vscode-cute"
+            ],
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "zsh",
+                "rust-analyzer.cargo.features": "all",
+                "editor.formatOnSave": true
+            }
+        }
+    },
+
+    "postCreateCommand": "bash -c 'cargo build --release && echo \"🚀 Sovereignty infrastructure ready!\"'",
+
+    "postStartCommand": "git config --global user.email 'sovereign@mmogit.local' && git config --global user.name 'Sovereign Agent'",
+
+    "remoteEnv": {
+        "MMOGIT_DEV": "true",
+        "YOLO_MODE": "enabled",
+        "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
+        "OPENAI_API_KEY": "${localEnv:OPENAI_API_KEY}"
+    },
+
+    "mounts": [
+        "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
+        "source=mmogit-cargo-cache,target=/usr/local/cargo,type=volume"
+    ],
+
+    "runArgs": ["--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"],
+
+    "forwardPorts": [],
+
+    "remoteUser": "vscode",
+
+    "containerEnv": {
+        "CRUSH_YOLO": "true"
+    },
+
+    "updateContentCommand": "cargo fetch",
+
+    "hostRequirements": {
+        "cpus": 2,
+        "memory": "4gb",
+        "storage": "8gb"
+    }
+}
