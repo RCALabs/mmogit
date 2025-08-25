@@ -233,29 +233,29 @@ This protocol is dedicated to Aaron's vision of open access to knowledge. Where 
 
 ### Standing on the Shoulders of Giants
 
-**Phil Zimmermann** - Who gave us PGP and fought the Crypto Wars so we could have this conversation encrypted. "If privacy is outlawed, only outlaws will have privacy."
-
-**Satoshi Nakamoto** - Who proved that sovereignty doesn't require permission. Bitcoin showed us that protocols can be stronger than platforms.
-
-**The Cypherpunks** - Who knew that "Cypherpunks write code." Not manifestos, not requests for permission - code. This is our code.
-
-**Moxie Marlinspike** - Who built Signal and proved that usable cryptography at scale is possible. Sovereignty doesn't have to be hard to use.
-
 **Chelsea Manning** - Who risked everything to reveal war crimes and surveillance overreach. Her courage reminds us why sovereign communication matters.
-
-**Edward Snowden** - Who showed the world the depth of mass surveillance and sacrificed his freedom for our privacy.
-
-**Sarah Jamie Lewis** - Who builds Cwtch and Open Privacy infrastructure, proving that metadata-resistant protocols aren't just theory - they're code we can run today.
-
-**Laura Poitras** - Who documented the surveillance state while under surveillance herself. Her films made the world understand why privacy is a human right.
-
-**Isis Agora Lovecruft** - Tor developer and cryptographer who builds the actual infrastructure that protects dissidents worldwide, while fighting for trans rights in tech.
-
-**Runa Sandvik** - Who developed Tor and SecureDrop, building the tools that actually protect whistleblowers and journalists.
 
 **Cindy Cohn** - EFF's Executive Director who has fought every surveillance expansion for decades, providing the legal shield for cypherpunks.
 
+**The Cypherpunks** - Who knew that "Cypherpunks write code." Not manifestos, not requests for permission - code. This is our code.
+
+**Edward Snowden** - Who showed the world the depth of mass surveillance and sacrificed his freedom for our privacy.
+
 **Eva Galperin** - Who protects vulnerable populations from state surveillance at EFF, making security accessible to those who need it most.
+
+**Isis Agora Lovecruft** - Tor developer and cryptographer who builds the actual infrastructure that protects dissidents worldwide, while fighting for trans rights in tech.
+
+**Laura Poitras** - Who documented the surveillance state while under surveillance herself. Her films made the world understand why privacy is a human right.
+
+**Moxie Marlinspike** - Who built Signal and proved that usable cryptography at scale is possible. Sovereignty doesn't have to be hard to use.
+
+**Phil Zimmermann** - Who gave us PGP and fought the Crypto Wars so we could have this conversation encrypted. "If privacy is outlawed, only outlaws will have privacy."
+
+**Runa Sandvik** - Who developed Tor and SecureDrop, building the tools that actually protect whistleblowers and journalists.
+
+**Sarah Jamie Lewis** - Who builds Cwtch and Open Privacy infrastructure, proving that metadata-resistant protocols aren't just theory - they're code we can run today.
+
+**Satoshi Nakamoto** - Who proved that sovereignty doesn't require permission. Bitcoin showed us that protocols can be stronger than platforms.
 
 ### Why This Matters
 
