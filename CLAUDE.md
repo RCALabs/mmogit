@@ -341,6 +341,19 @@ Protocol:
 4. **Boring Crypto** - Ed25519, XChaCha20-Poly1305, no experiments
 5. **WET Before DRY** - Write Everything Twice, then maybe refactor
 
+## DOCUMENTATION AWARENESS
+
+### Rust Documentation Librarian
+**CRITICAL:** We have a `rust-docs-librarian` agent that manages all Rust documentation in the `docs/` folder. This includes:
+- Crate dependency documentation
+- Architectural patterns
+- Cryptographic invariants
+- API references
+- Security patterns
+
+**ALWAYS check `docs/` before implementing crypto or architecture changes.**
+The librarian maintains precise, sovereignty-aware documentation that supersedes assumptions.
+
 ## DEVELOPMENT GUIDELINES
 
 ### Pragmatic Coding Principles

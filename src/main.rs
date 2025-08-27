@@ -91,12 +91,21 @@ pub enum Commands {
     ///
     /// # Protocol Note for Agents
     ///
-    /// Messages are always signed with Ed25519 and may be encrypted with
-    /// XChaCha20-Poly1305 if encryption keys are configured. The message
-    /// format is designed to be forward-compatible.
+    /// Messages are always signed with Ed25519 and encrypted by default
+    /// with XChaCha20-Poly1305. Use --public to post unencrypted messages.
+    /// This ensures sovereignty by default - your thoughts are yours first.
     Post {
-        /// Message content (will be signed and possibly encrypted)
+        /// Message content (will be signed and encrypted by default)
         message: String,
+        
+        /// Post publicly without encryption (default: false - encrypted)
+        #[arg(long)]
+        public: bool,
+        
+        /// Encrypt for specific recipient (by pubkey or name)
+        /// If not specified, encrypts for self only
+        #[arg(long)]
+        encrypt_for: Option<String>,
     },
 
     /// Sync with remote repositories (pull then push)
@@ -138,6 +147,10 @@ pub enum Commands {
         /// Optional confidence level for observations (0.0 to 1.0)
         #[arg(long)]
         confidence: Option<f32>,
+        
+        /// Post memory publicly without encryption (default: false - encrypted)
+        #[arg(long)]
+        public: bool,
     },
 
     /// Recall memories based on filters
@@ -247,10 +260,17 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
-        Commands::Post { message } => {
+        Commands::Post { message, public, encrypt_for } => {
             // INVARIANT: Every message must be signed
             // Unsigned messages are protocol violations
-            post::post(&message, &config_dir)
+            // NEW INVARIANT: Messages are encrypted by default (sovereignty first)
+            if public {
+                // Explicitly public - post unencrypted
+                post::post(&message, &config_dir)
+            } else {
+                // Default: encrypted for sovereignty
+                post::post_encrypted(&message, encrypt_for.as_deref(), &config_dir)
+            }
         }
         Commands::Sync => {
             // NOTE: This should be idempotent - safe to run repeatedly
@@ -265,6 +285,7 @@ fn main() -> Result<()> {
             content,
             tags,
             confidence,
+            public,
         } => {
             use crate::memory::StructuredMemory;
 
@@ -295,9 +316,15 @@ fn main() -> Result<()> {
             }
             .with_tags(tag_list);
 
-            // Convert to JSON and post
+            // Convert to JSON and post (encrypted by default!)
             let json_content = memory.to_message()?;
-            post::post(&json_content, &config_dir)?;
+            
+            if public {
+                post::post(&json_content, &config_dir)?;
+            } else {
+                // Memories are sovereign by default
+                post::post_encrypted(&json_content, None, &config_dir)?;
+            }
 
             println!("💭 Structured memory posted: {}", memory_type);
             Ok(())
