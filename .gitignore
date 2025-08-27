@@ -24,3 +24,12 @@ Thumbs.db
 
 # env files
 .env*
+
+# Local development files
+CLAUDE.md
+crush-panic-*.log
+test_real_crush.sh
+
+# Draft documents (not for repo)
+SUBSTACK_DRAFT.md
+REDDIT_POSTS.md
