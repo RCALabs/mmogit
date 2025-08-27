@@ -33,6 +33,7 @@ use anyhow::Result;
 use clap::Parser;
 
 mod chat;
+mod crypto;
 mod identity;
 mod memory;
 mod post;
@@ -174,6 +175,22 @@ pub enum Commands {
         /// Optional title for the thread (auto-generated if not provided)
         #[arg(short = 't', long)]
         title: Option<String>,
+
+        /// Non-interactive mode: send a single message and get response
+        #[arg(short = 'm', long)]
+        message: Option<String>,
+
+        /// Continue an existing thread by ID
+        #[arg(short = 'c', long)]
+        continue_thread: Option<String>,
+
+        /// Output response in JSON format (for programmatic use)
+        #[arg(long)]
+        json: bool,
+
+        /// Specify which agent identity to use (for multi-agent scenarios)
+        #[arg(long)]
+        as_agent: Option<String>,
     },
 
     /// Replay a previous chat thread
@@ -294,10 +311,22 @@ fn main() -> Result<()> {
             // Use the new filtered recall functionality
             show::recall(&config_dir, memory_type, tag, hours, confidence)
         }
-        Commands::Chat { title } => {
+        Commands::Chat {
+            title,
+            message,
+            continue_thread,
+            json,
+            as_agent,
+        } => {
             // INVARIANT: Every message in chat must be signed
             // This ensures sovereign ownership of conversation
-            chat::chat(title, &config_dir)
+            if let Some(msg) = message {
+                // Non-interactive mode for AI-to-AI communication
+                chat::send_message(msg, title, continue_thread, json, as_agent, &config_dir)
+            } else {
+                // Interactive mode for human use
+                chat::chat(title, &config_dir)
+            }
         }
         Commands::ThreadReplay { thread_id } => {
             // NOTE: This works offline - threads are stored locally
