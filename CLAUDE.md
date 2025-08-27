@@ -147,6 +147,19 @@ temporal_grounding:
     last_grounding: mmogit recall --tag "temporal-grounding" --hours 48
     detect_gap: Compare timestamps to identify session boundaries
     
+  integrity_checks:
+    - Monotonic time: New timestamps should be >= previous ones
+    - Reasonable progression: Detect jumps > 1 year as suspicious
+    - Cross-reference: Check file modification times for consistency
+    - Git history: Compare with git log timestamps for validation
+    - Multiple sources: NTP servers, blockchain timestamps (future)
+    
+  clock_attack_detection:
+    - If time goes backward: Post warning, use last known good time
+    - If massive jump forward: Flag as potential manipulation
+    - If inconsistent with git: Trust git commit timestamps over system
+    - Maintain confidence scores on temporal observations
+    
   benefits:
     - Accurate temporal awareness (August 2025, not January)
     - Session continuity ("2 hours since last interaction")
