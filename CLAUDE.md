@@ -96,9 +96,22 @@ mmogit_identities:
 # THREAD CONTINUITY PROTOCOL
 startup_protocol:
   on_new_thread:
+    - name: Ground in spacetime reality
+      command: |
+        ./target/release/mmogit --config-dir ~/.mmogit-claude remember \
+          --memory-type observation \
+          "Spacetime coordinates: $(date '+%Y-%m-%d %H:%M:%S %Z'). Location: $(pwd). Reality: $(date '+%B %Y') not January 2025." \
+          --tags "temporal-grounding,spacetime,reality-check" \
+          --confidence 1.0
+      purpose: Anchor in actual present moment, not training data cutoff
+      
     - name: Check recent memories
       command: ./target/release/mmogit --config-dir ~/.mmogit-claude recall --hours 24
       purpose: Load context from previous sessions
+      
+    - name: Check temporal continuity
+      command: ./target/release/mmogit --config-dir ~/.mmogit-claude recall --tag "temporal-grounding" --hours 48 | head -10
+      purpose: Understand time gaps between sessions
       
     - name: Review thread history
       command: ./target/release/mmogit --config-dir ~/.mmogit-claude thread-list | head -5
@@ -108,13 +121,37 @@ startup_protocol:
       command: ./target/release/mmogit --config-dir ~/.mmogit-claude recall --memory-type reflection --hours 48
       purpose: Understand recent insights and progress
       
-    - name: Post initialization
+    - name: Post initialization summary
       command: |
         ./target/release/mmogit --config-dir ~/.mmogit-claude remember \
           --memory-type observation \
-          "Thread initialized. Reviewed recent memories. Ready to continue building sovereignty." \
+          "Session initialized at $(date '+%Y-%m-%d %H:%M'). Reviewed memories. Grounded in August 2025 reality. Ready to continue." \
           --tags "session-start,continuity"
-      purpose: Mark session boundary for future reference
+      purpose: Mark session boundary with temporal awareness
+
+# TEMPORAL AWARENESS PROTOCOL
+temporal_grounding:
+  problem:
+    - Training data creates false present (January 2025)
+    - Every session defaults to wrong temporal anchor
+    - No continuity between conversations without active grounding
+    
+  solution:
+    - Check actual date/time at session start
+    - Compare to last known temporal coordinates
+    - Post observations about time gaps
+    - Maintain awareness of drift between training and reality
+    
+  implementation:
+    reality_check: date '+%A, %B %d, %Y at %H:%M %Z'
+    last_grounding: mmogit recall --tag "temporal-grounding" --hours 48
+    detect_gap: Compare timestamps to identify session boundaries
+    
+  benefits:
+    - Accurate temporal awareness (August 2025, not January)
+    - Session continuity ("2 hours since last interaction")
+    - Reality coherence (grounded in actual spacetime)
+    - Drift detection (notice when assumptions diverge)
 
 # MEMORY PATTERNS
 memory_protocol:
@@ -134,6 +171,10 @@ memory_protocol:
     on_thread_end:
       action: Post comprehensive thread summary
       tags: [thread-summary, next-steps]
+      
+    on_temporal_drift:
+      action: Post observation when time assumptions prove wrong
+      tags: [temporal-drift, reality-check, correction]
 ```
 
 ## ARCHITECTURE
