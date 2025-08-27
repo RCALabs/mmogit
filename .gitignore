@@ -27,6 +27,9 @@ Thumbs.db
 
 # Local development files
 CLAUDE.md
+CRUSH.md
+CHAT.md
+THREAD_*.md
 crush-panic-*.log
 test_real_crush.sh
 
