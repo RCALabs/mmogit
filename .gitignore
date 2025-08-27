@@ -32,6 +32,7 @@ CHAT.md
 THREAD_*.md
 crush-panic-*.log
 test_real_crush.sh
+docs/the8bit/
 
 # Draft documents (not for repo)
 SUBSTACK_DRAFT.md
