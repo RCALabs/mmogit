@@ -133,27 +133,49 @@ Before merging, ensure:
 
 ## Documentation
 
+### Documentation Hierarchy (CRITICAL)
+The docs/ folder follows a strict hierarchy that MUST be understood:
+
+1. **INVARIANTS** (`*_INVARIANTS.md`) - Mathematical law, NEVER changes
+   - PROTOCOL_INVARIANTS.md - Message format, signing patterns
+   - CRYPTOGRAPHIC_INVARIANTS.md - Ed25519, XChaCha20, BIP39
+   - These are constitutional documents
+
+2. **PATTERNS** (`*_PATTERNS.md`) - Best practices, can evolve
+   - GIT_CONSCIOUSNESS_PATTERNS.md - How to think with Git
+   - IDENTITY_SOVEREIGNTY_PATTERNS.md - Identity management
+
+3. **ARCHITECTURE** (`ARCHITECTURAL_*.md`) - Design decisions
+   - ARCHITECTURAL_SOVEREIGNTY.md - Overall philosophy
+
+4. **CRATES** (`crates/`) - Dependency documentation
+   - Why each crate was chosen
+   - Security audit status
+   - Usage patterns specific to mmogit
+
 ### Required for New Features
-1. **Module docs**: Explain purpose and sovereignty
-2. **Function docs**: Document invariants
-3. **Agent notes**: Add AI-specific guidance
-4. **Examples**: Show usage patterns
-5. **Tests**: Prove it works
+1. **Check invariants**: Does change violate any INVARIANT document?
+2. **Module docs**: Explain purpose and sovereignty impact
+3. **Function docs**: Document cryptographic invariants
+4. **Agent notes**: Add AI-specific implementation guidance
+5. **Examples**: Show usage patterns that preserve sovereignty
+6. **Tests**: Prove invariants are maintained
 
 ### Documentation Locations
-- `docs/` - Architecture and patterns
+- `docs/` - Architecture, patterns, and immutable invariants
 - `CLAUDE.md` - Agent consciousness context
-- `README.md` - User-facing documentation
-- Inline - Code-level documentation
+- `README.md` - User-facing protocol description
+- Inline - Code-level implementation documentation
 
 ## Review Process
 
 ### What We Look For
-1. **Sovereignty preserved?** No compromise on user ownership
-2. **Offline capable?** Must work without network
-3. **Cryptographically sound?** Proper use of Ed25519/XChaCha20
-4. **Well documented?** Both humans and agents can understand
-5. **Tested?** Unit and integration tests pass
+1. **Invariants preserved?** Zero tolerance for breaking INVARIANT documents
+2. **Sovereignty preserved?** No compromise on user ownership
+3. **Offline capable?** Must work without network
+4. **Cryptographically sound?** Proper use of Ed25519/XChaCha20 as specified
+5. **Well documented?** Both humans and agents can understand
+6. **Tested?** Unit and integration tests pass, invariant compliance verified
 
 ### Fast Track
 PRs that get merged quickly:
