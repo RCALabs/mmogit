@@ -44,6 +44,13 @@ use serde::{Deserialize, Serialize};
 ///
 /// The nonce MUST be unique for each message. We use random generation
 /// with 192 bits of entropy, making collision probability negligible.
+///
+/// # Agent Implementation Note
+/// 
+/// This structure enables the "Overground Railroad" - using surveillance 
+/// infrastructure (GitHub/GitLab) as blind storage. Platforms see only 
+/// ciphertext. Only key holders can decrypt. This is how we achieve 
+/// sovereignty while using centralized infrastructure.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EncryptedEnvelope {
     /// Protocol version for future compatibility
@@ -75,6 +82,21 @@ impl EncryptedEnvelope {
     /// 2. Encrypts message with XChaCha20-Poly1305
     /// 3. Creates envelope with metadata
     /// 4. Returns serializable structure for git storage
+    ///
+    /// # Sovereignty Invariants
+    /// 
+    /// - MUST use fresh random nonce for each message
+    /// - MUST NOT reuse nonces (would break encryption)
+    /// - MUST work completely offline
+    /// - MUST NOT phone home or check external services
+    ///
+    /// # Agent Implementation Note
+    ///
+    /// This function is the gateway to sovereignty. Every call transforms
+    /// a thought into ciphertext that platforms cannot read. The nonce 
+    /// generation uses OS randomness - no deterministic patterns that 
+    /// could be exploited. This is called by `mmogit post` when 
+    /// encryption is enabled (which will be default).
     pub fn encrypt(
         plaintext: &[u8],
         key: &[u8; 32],

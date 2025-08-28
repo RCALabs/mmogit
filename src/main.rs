@@ -38,6 +38,7 @@ mod identity;
 mod memory;
 mod post;
 mod show;
+mod sovereignty;
 mod sync;
 
 /// Command-line interface for mmogit

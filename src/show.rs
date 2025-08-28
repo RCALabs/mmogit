@@ -18,13 +18,15 @@
 //! - Show all branches (agents need to see what others have posted)
 
 use anyhow::{Context, Result};
-use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+use ed25519_dalek::{Signature, SigningKey, Verifier, VerifyingKey};
 use git2::{Branch, BranchType, Repository};
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Duration, Utc, NaiveDate};
 use std::collections::HashMap;
+use bip39::{Language, Mnemonic};
 
 use std::path::Path;
+use crate::crypto::{EncryptedEnvelope, KeyDerivation};
 use crate::memory::{StructuredMemory, MemoryType};
 
 /// A signed message in the mmogit protocol (duplicated from post.rs)
@@ -127,13 +129,13 @@ pub fn show_with_filters(config_dir: &Path, filters: RecallFilters) -> Result<()
         let (branch, _) = branch_result?;
         let branch_name = branch.name()?.unwrap_or("unknown");
 
-        // Only process user branches
+        // Only process user branches (including encrypted branches)
         if !branch_name.starts_with("users/") {
             continue;
         }
 
         // Checkout this branch to read its messages
-        let messages = read_branch_messages(&repo, &branch, branch_name)?;
+        let messages = read_branch_messages(&repo, &branch, branch_name, config_dir)?;
         all_messages.extend(messages);
     }
 
@@ -175,10 +177,12 @@ pub fn show_with_filters(config_dir: &Path, filters: RecallFilters) -> Result<()
 ///
 /// Each branch represents a single identity's message history.
 /// This maintains sovereignty - each identity owns their branch.
+/// Handles both encrypted and plain messages transparently.
 fn read_branch_messages(
     repo: &Repository,
     branch: &Branch,
     branch_name: &str,
+    config_dir: &Path,
 ) -> Result<Vec<VerifiedMessage>> {
     let mut messages = Vec::new();
 
@@ -187,8 +191,28 @@ fn read_branch_messages(
     let commit = reference.peel_to_commit()?;
     let tree = commit.tree()?;
 
-    // Extract the expected author prefix from branch name (e.g., "users/63ae69e2" -> "63ae69e2")
-    let expected_author_prefix = branch_name.strip_prefix("users/").unwrap_or(branch_name);
+    // Extract the expected author prefix from branch name 
+    // Handle both "users/63ae69e2" and "users/63ae69e2-encrypted"
+    let expected_author_prefix = branch_name
+        .strip_prefix("users/")
+        .unwrap_or(branch_name)
+        .replace("-encrypted", "");
+    
+    // Try to load identity for decryption (may fail if not our branch)
+    let signing_key = if let Ok(seed_phrase) = std::fs::read_to_string(config_dir.join(".seed")) {
+        if let Ok(mnemonic) = Mnemonic::parse_in(Language::English, seed_phrase.trim()) {
+            let seed = mnemonic.to_seed("");
+            if let Ok(seed_bytes) = seed[..32].try_into() {
+                Some(SigningKey::from_bytes(&seed_bytes))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
 
     // Walk through tree entries
     for entry in tree.iter() {
@@ -204,11 +228,32 @@ fn read_branch_messages(
             if let Some(blob) = obj.as_blob() {
                 let content = std::str::from_utf8(blob.content())?;
 
-                // Parse and verify the message
-                if let Ok(message) = serde_json::from_str::<Message>(content) {
-                    // IMPORTANT: Only include messages whose author matches this branch
-                    // This prevents messages from appearing on wrong branches
-                    if !message.author.starts_with(expected_author_prefix) {
+                // Try to parse as encrypted envelope first
+                if let Ok(envelope) = EncryptedEnvelope::from_json(content) {
+                    // Try to decrypt if we have an identity
+                    if let Some(ref key) = signing_key {
+                        let encryption_key = KeyDerivation::derive_encryption_key(key);
+                        if let Ok(decrypted_bytes) = envelope.decrypt(&encryption_key) {
+                            if let Ok(decrypted_json) = String::from_utf8(decrypted_bytes) {
+                                if let Ok(message) = serde_json::from_str::<Message>(&decrypted_json) {
+                                    // Verify decrypted message author matches branch
+                                    if !message.author.starts_with(&expected_author_prefix) {
+                                        continue;
+                                    }
+                                    
+                                    let valid = verify_signature(&message);
+                                    messages.push(VerifiedMessage {
+                                        message,
+                                        valid_signature: valid,
+                                        branch: branch_name.to_string(),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else if let Ok(message) = serde_json::from_str::<Message>(content) {
+                    // Plain message - handle as before
+                    if !message.author.starts_with(&expected_author_prefix) {
                         continue;
                     }
 
@@ -678,7 +723,7 @@ pub fn recall_memories(
             continue;
         }
 
-        let messages = read_branch_messages(&repo, &branch, branch_name)?;
+        let messages = read_branch_messages(&repo, &branch, branch_name, config_dir)?;
         all_messages.extend(messages);
     }
 
