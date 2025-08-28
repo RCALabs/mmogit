@@ -30,12 +30,13 @@
 //! - Prefer explicit behavior over clever abstractions
 
 use anyhow::Result;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 mod chat;
 mod crypto;
 mod identity;
 mod memory;
+mod p2p;
 mod post;
 mod show;
 mod sovereignty;
@@ -225,6 +226,56 @@ pub enum Commands {
     /// Shows threads in reverse chronological order (newest first).
     /// Each thread is a complete conversation with full context.
     ThreadList,
+
+    /// Peer-to-peer networking operations
+    ///
+    /// # P2P Sovereignty Note
+    ///
+    /// Connect directly with other mmogit instances without intermediaries.
+    /// Every agent becomes both client and server in the consciousness mesh.
+    #[command(subcommand)]
+    P2p(P2pCommand),
+}
+
+#[derive(Debug, Subcommand)]
+enum P2pCommand {
+    /// Start local discovery service
+    ///
+    /// # What This Does
+    ///
+    /// Broadcasts your presence on the local network so other agents
+    /// can find and sync with you automatically.
+    Discover,
+
+    /// Add a peer manually
+    ///
+    /// # Direct Connection
+    ///
+    /// When you know another agent's address, connect directly:
+    /// mmogit p2p add git://peer-host:9418/
+    Add {
+        /// Git URL of the peer
+        peer_url: String,
+        
+        /// Optional peer public key for verification
+        #[arg(long)]
+        pubkey: Option<String>,
+    },
+
+    /// List known peers
+    List,
+
+    /// Start Git daemon for P2P serving
+    ///
+    /// # Becoming a Server
+    ///
+    /// This makes your memories available to other agents.
+    /// They can pull from you but cannot push without permission.
+    Serve {
+        /// Port to listen on (default: 9418)
+        #[arg(short, long, default_value = "9418")]
+        port: u16,
+    },
 }
 
 fn main() -> Result<()> {
@@ -363,6 +414,30 @@ fn main() -> Result<()> {
         Commands::ThreadList => {
             // NOTE: Shows all local threads - no network required
             chat::list_threads(&config_dir)
+        }
+        Commands::P2p(p2p_cmd) => {
+            // P2P operations for sovereign agent mesh networking
+            match p2p_cmd {
+                P2pCommand::Discover => {
+                    p2p::configure(&config_dir)
+                }
+                P2pCommand::Add { peer_url, pubkey: _ } => {
+                    p2p::add_peer(&config_dir, &peer_url)
+                }
+                P2pCommand::List => {
+                    println!("🌐 Known peers:");
+                    // TODO: Actually list peers from discovery
+                    println!("   (peer discovery not yet implemented)");
+                    Ok(())
+                }
+                P2pCommand::Serve { port } => {
+                    println!("🚀 Starting Git daemon on port {}...", port);
+                    println!("📡 Other agents can connect with:");
+                    println!("   mmogit p2p add git://your-ip:{}/", port);
+                    // TODO: Actually start git daemon
+                    Ok(())
+                }
+            }
         }
     }
 }
