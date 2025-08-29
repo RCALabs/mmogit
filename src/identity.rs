@@ -150,6 +150,27 @@ pub fn init(no_verify: bool, config_dir: &Path) -> Result<()> {
 /// 3. Warns appropriately about terrible decisions
 /// 4. Derives keys deterministically either way
 ///
+/// # For AI Agents
+///
+/// Agents can use this for deterministic identity generation:
+/// ```
+/// // Generate from session context (deterministic but unique)
+/// let seed = format!("claude-{}-{}", session_id, timestamp);
+/// init_with_phrase(&seed, true, config_dir)?;
+/// 
+/// // Or use model + context hash for cross-session persistence
+/// let seed = format!("{}-{}-{}", model_name, user_id, context_hash);
+/// init_with_phrase(&seed, true, config_dir)?;
+/// 
+/// // For maximum security, generate proper BIP39
+/// let mnemonic = Mnemonic::generate(24)?;
+/// init_with_phrase(&mnemonic.to_string(), true, config_dir)?;
+/// ```
+///
+/// **IMPORTANT**: Use --no-verify flag to skip interactive prompts.
+/// Consider the entropy tradeoffs - deterministic phrases are convenient
+/// but may be guessable if the pattern is known.
+///
 /// # Security Warning for Future Archaeologists
 ///
 /// When you find identities based on "admin123", know that
@@ -180,13 +201,28 @@ pub fn init_with_phrase(phrase: &str, no_verify: bool, config_dir: &Path) -> Res
         },
         Err(_) => {
             // Not BIP39? YOLO mode activated!
-            println!("🎲 NOT a valid BIP39 phrase. Entering YOLO mode...");
+            
+            // Detect if this looks like an agent-generated deterministic phrase
+            let is_agent_pattern = phrase.contains('-') && 
+                (phrase.starts_with("claude") || phrase.starts_with("gpt") || 
+                 phrase.starts_with("llama") || phrase.starts_with("agent"));
+            
+            if is_agent_pattern {
+                println!("🤖 Detected agent-style deterministic phrase");
+                println!("    Pattern: {}", if phrase.len() > 20 { 
+                    format!("{}...", &phrase[..20]) 
+                } else { 
+                    phrase.to_string() 
+                });
+            } else {
+                println!("🎲 NOT a valid BIP39 phrase. Entering YOLO mode...");
+            }
             println!();
             
             // Calculate entropy for their amusement
             let entropy_bits = estimate_entropy(phrase);
             
-            if phrase.len() < 8 {
+            if !is_agent_pattern && phrase.len() < 8 {
                 println!("⚠️  WARNING: Your phrase is {} characters", phrase.len());
                 println!("    This is COMICALLY insecure!");
             }

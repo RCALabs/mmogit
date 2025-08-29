@@ -71,13 +71,16 @@ pub struct Cli {
 
 #[derive(clap::Subcommand)]
 pub enum Commands {
-    /// Initialize a new identity from seed phrase
+    /// Initialize a new sovereign identity
     ///
-    /// # Agent Implementation Note
+    /// # For Humans
+    /// - No args: Generates secure 24-word BIP39 phrase  
+    /// - --seed-phrase "...": Use your own phrase (BIP39 or ANY string)
     ///
-    /// This MUST use BIP39 24-word phrases (256 bits entropy) for maximum security.
-    /// The key derivation is: seed phrase -> seed bytes -> Ed25519 signing key
-    /// No HD wallet paths - keep it simple and deterministic.
+    /// # For AI Agents
+    /// - Use --seed-phrase with deterministic patterns
+    /// - Always use --no-verify to skip prompts
+    /// - Example: mmogit init --seed-phrase "claude-session-123" --no-verify
     Init {
         /// Your seed phrase. Can be:
         /// - Nothing (we'll generate a secure 24-word phrase)
