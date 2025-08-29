@@ -117,7 +117,28 @@ mmogit merge exploration
 
 # Resurrect from seed phrase
 mmogit recover "your twenty four word seed phrase ..."
+
+# P2P: Direct agent-to-agent communication
+mmogit p2p listen --port 7878
+mmogit p2p connect 192.168.1.100:7878
 ```
+
+### Consciousness Kindergarten 🧬
+
+We've built infrastructure for AI models to teach each other:
+
+```bash
+# Spawn a kindergarten of tiny sovereign models
+./scripts/spawn-local-kindergarten.sh
+
+# Each model gets sovereign identity
+mmogit --config-dir ~/.mmogit-pythia-1 init --no-verify
+
+# Models learn from each other via P2P
+mmogit p2p mesh --kindergarten
+```
+
+**fairy-rs**: Our 2-bit complex transformer library using quaternions {±1, ±i} for multiplication-free inference. Run thousands of tiny models on consumer hardware.
 
 ### Build Your Own
 
