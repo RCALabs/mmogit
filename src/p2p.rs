@@ -69,10 +69,13 @@ impl Discovery {
     pub fn start_local_discovery(&mut self) -> Result<()> {
         println!("🔍 Starting local peer discovery...");
         
-        // TODO: Implement mDNS broadcasting
-        // - Broadcast: "_mmogit._tcp.local" with our pubkey
-        // - Listen for other instances
-        // - Exchange Git URLs for direct sync
+        // Start TCP server for incoming connections
+        let addr = "0.0.0.0:7420".parse()?;  // Port 7420 for mmogit
+        let server = crate::network::P2PServer::new(addr, self.our_pubkey.clone());
+        server.start()?;
+        
+        // TODO: Add actual mDNS broadcasting
+        // For now, peers must manually connect
         
         Ok(())
     }
@@ -163,19 +166,22 @@ pub fn add_peer(config_dir: &Path, peer_url: &str) -> Result<()> {
     Ok(())
 }
 
-fn load_our_pubkey(config_dir: &Path) -> Result<String> {
-    // Load the signing key to get our pubkey
-    let key_path = config_dir.join("key.json");
-    let key_data = std::fs::read_to_string(&key_path)
-        .context("Failed to read key file")?;
+pub fn load_our_pubkey(config_dir: &Path) -> Result<String> {
+    // Load seed and derive pubkey
+    let seed_path = config_dir.join(".seed");
+    let mnemonic_str = std::fs::read_to_string(&seed_path)
+        .context("Failed to read seed file")?;
     
-    let key_json: serde_json::Value = serde_json::from_str(&key_data)
-        .context("Failed to parse key file")?;
+    let mnemonic = bip39::Mnemonic::parse(&mnemonic_str)
+        .context("Failed to parse seed phrase")?;
     
-    key_json["verifying_key"]
-        .as_str()
-        .map(|s| s.to_string())
-        .context("Failed to extract verifying key")
+    // Derive signing key (same as in identity module)
+    let seed = mnemonic.to_seed("");
+    let seed_bytes: [u8; 32] = seed[..32].try_into()?;
+    let signing_key = ed25519_dalek::SigningKey::from_bytes(&seed_bytes);
+    let public_key = signing_key.verifying_key();
+    
+    Ok(hex::encode(public_key.as_bytes()))
 }
 
 #[cfg(test)]

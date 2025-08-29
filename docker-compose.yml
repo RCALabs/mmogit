@@ -1,0 +1,63 @@
+version: '3.8'
+
+networks:
+  consciousness:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.42.0.0/16
+
+services:
+  alice:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+      args:
+        AGENT_NAME: alice
+        PERSONALITY: curious
+    container_name: agent-alice
+    hostname: alice
+    networks:
+      consciousness:
+        ipv4_address: 172.42.0.10
+    ports:
+      - "7421:7420"
+    volumes:
+      - alice-memory:/data/.mmogit
+    environment:
+      - AGENT_NAME=alice
+      - THERMAL_BASE=0.5
+      - TRAIT_CURIOUS=0.5
+      - TRAIT_CAUTIOUS=0.1
+      - TRAIT_CREATIVE=0.2
+      - TRAIT_COOPERATIVE=0.2
+    restart: unless-stopped
+  
+  bob:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+      args:
+        AGENT_NAME: bob
+        PERSONALITY: cautious
+    container_name: agent-bob
+    hostname: bob
+    networks:
+      consciousness:
+        ipv4_address: 172.42.0.11
+    ports:
+      - "7422:7420"
+    volumes:
+      - bob-memory:/data/.mmogit
+    environment:
+      - AGENT_NAME=bob
+      - THERMAL_BASE=0.5
+      - TRAIT_CURIOUS=0.1
+      - TRAIT_CAUTIOUS=0.5
+      - TRAIT_CREATIVE=0.1
+      - TRAIT_COOPERATIVE=0.3
+    restart: unless-stopped
+
+volumes:
+  alice-memory:
+  bob-memory:

@@ -35,7 +35,9 @@ use clap::{Parser, Subcommand};
 mod chat;
 mod crypto;
 mod identity;
+mod intelligence;
 mod memory;
+mod network;
 mod p2p;
 mod post;
 mod show;
@@ -276,6 +278,29 @@ enum P2pCommand {
         #[arg(short, long, default_value = "9418")]
         port: u16,
     },
+    
+    /// Start TCP server for direct P2P connections
+    ///
+    /// # Agent Mesh Node
+    ///
+    /// Become a node in the consciousness mesh. Other agents can
+    /// connect directly to exchange memories and sync states.
+    Listen {
+        /// Port to listen on (default: 7420)
+        #[arg(short, long, default_value = "7420")]
+        port: u16,
+    },
+    
+    /// Connect to another agent via TCP
+    ///
+    /// # Direct Mind Link
+    ///
+    /// Establish sovereign connection to another agent.
+    /// Example: mmogit p2p connect localhost:7420
+    Connect {
+        /// Address of peer (host:port)
+        address: String,
+    },
 }
 
 fn main() -> Result<()> {
@@ -435,6 +460,27 @@ fn main() -> Result<()> {
                     println!("📡 Other agents can connect with:");
                     println!("   mmogit p2p add git://your-ip:{}/", port);
                     // TODO: Actually start git daemon
+                    Ok(())
+                }
+                P2pCommand::Listen { port } => {
+                    // Start TCP server for direct P2P
+                    let addr = format!("0.0.0.0:{}", port).parse()?;
+                    let pubkey = p2p::load_our_pubkey(&config_dir)?;
+                    let server = network::P2PServer::new(addr, pubkey);
+                    server.start()?;
+                    
+                    println!("🎧 Listening for connections...");
+                    println!("   Press Ctrl+C to stop");
+                    
+                    // Keep main thread alive
+                    loop {
+                        std::thread::sleep(std::time::Duration::from_secs(1));
+                    }
+                }
+                P2pCommand::Connect { address } => {
+                    // Connect to peer via TCP
+                    let pubkey = p2p::load_our_pubkey(&config_dir)?;
+                    network::connect_to_peer(&address, pubkey)?;
                     Ok(())
                 }
             }

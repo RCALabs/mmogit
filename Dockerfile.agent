@@ -1,0 +1,47 @@
+FROM rust:1.75 as builder
+
+WORKDIR /build
+
+# Copy source code
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+
+# Build mmogit
+RUN cargo build --release
+
+# Runtime image
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    git \
+    openssh-client \
+    jq \
+    bc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy mmogit binary
+COPY --from=builder /build/target/release/mmogit /usr/local/bin/mmogit
+
+# Create data directory
+RUN mkdir -p /data/.mmogit
+
+WORKDIR /data
+
+# Agent boot script
+COPY scripts/agent-boot.sh /usr/local/bin/agent-boot.sh
+RUN chmod +x /usr/local/bin/agent-boot.sh
+
+# Agent personality
+ARG AGENT_NAME=agent
+ARG PERSONALITY=balanced
+
+ENV AGENT_NAME=${AGENT_NAME}
+ENV PERSONALITY=${PERSONALITY}
+
+# Expose P2P port
+EXPOSE 7420
+
+# Boot the agent
+CMD ["/usr/local/bin/agent-boot.sh"]
