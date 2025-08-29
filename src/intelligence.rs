@@ -124,11 +124,13 @@ pub fn think(
     
     let latency_ms = start.elapsed().as_millis() as u64;
     
+    let thermal_cost = calculate_thermal_cost(&thought.source, latency_ms);
+    
     Ok(Thought {
         content: thought.content,
         source: thought.source,
         confidence: thought.confidence,
-        thermal_cost: calculate_thermal_cost(&thought.source, latency_ms),
+        thermal_cost,
         latency_ms,
     })
 }

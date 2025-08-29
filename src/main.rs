@@ -79,12 +79,16 @@ pub enum Commands {
     /// The key derivation is: seed phrase -> seed bytes -> Ed25519 signing key
     /// No HD wallet paths - keep it simple and deterministic.
     Init {
-        /// Optional 24-word BIP39 seed phrase (will generate if not provided)
+        /// Your seed phrase. Can be:
+        /// - Nothing (we'll generate a secure 24-word phrase)
+        /// - A BIP39 mnemonic (12, 15, 18, 21, or 24 words)
+        /// - Literally ANY string you want (YOLO mode)
         ///
-        /// # Security Note for Agents
-        /// Never log or transmit seed phrases. They ARE the identity.
+        /// # Security Note
+        /// Using "password1" as your entire digital identity? Be our guest.
+        /// Your sovereignty includes the right to terrible decisions.
         #[arg(long)]
-        seed: Option<String>,
+        seed_phrase: Option<String>,
 
         /// Skip interactive verification (for agents and automation)
         #[arg(long)]
@@ -101,11 +105,11 @@ pub enum Commands {
     Post {
         /// Message content (will be signed and encrypted by default)
         message: String,
-        
+
         /// Post publicly without encryption (default: false - encrypted)
         #[arg(long)]
         public: bool,
-        
+
         /// Encrypt for specific recipient (by pubkey or name)
         /// If not specified, encrypts for self only
         #[arg(long)]
@@ -151,7 +155,7 @@ pub enum Commands {
         /// Optional confidence level for observations (0.0 to 1.0)
         #[arg(long)]
         confidence: Option<f32>,
-        
+
         /// Post memory publicly without encryption (default: false - encrypted)
         #[arg(long)]
         public: bool,
@@ -258,7 +262,7 @@ enum P2pCommand {
     Add {
         /// Git URL of the peer
         peer_url: String,
-        
+
         /// Optional peer public key for verification
         #[arg(long)]
         pubkey: Option<String>,
@@ -278,7 +282,7 @@ enum P2pCommand {
         #[arg(short, long, default_value = "9418")]
         port: u16,
     },
-    
+
     /// Start TCP server for direct P2P connections
     ///
     /// # Agent Mesh Node
@@ -290,7 +294,7 @@ enum P2pCommand {
         #[arg(short, long, default_value = "7420")]
         port: u16,
     },
-    
+
     /// Connect to another agent via TCP
     ///
     /// # Direct Mind Link
@@ -326,16 +330,13 @@ fn main() -> Result<()> {
     });
 
     match cli.command {
-        Commands::Init { seed, no_verify } => {
+        Commands::Init { seed_phrase, no_verify } => {
             // INVARIANT: Identity generation must be deterministic
             // Same seed phrase MUST generate same keys every time
-            if seed.is_some() {
-                println!("Recovering from seed phrase");
-                // TODO: Validate BIP39 before proceeding
-            } else {
-                identity::init(no_verify, &config_dir)?;
+            match seed_phrase {
+                Some(phrase) => identity::init_with_phrase(&phrase, no_verify, &config_dir),
+                None => identity::init(no_verify, &config_dir),
             }
-            Ok(())
         }
         Commands::Post { message, public, encrypt_for } => {
             // INVARIANT: Every message must be signed
@@ -395,7 +396,7 @@ fn main() -> Result<()> {
 
             // Convert to JSON and post (encrypted by default!)
             let json_content = memory.to_message()?;
-            
+
             if public {
                 post::post(&json_content, &config_dir)?;
             } else {
@@ -468,10 +469,10 @@ fn main() -> Result<()> {
                     let pubkey = p2p::load_our_pubkey(&config_dir)?;
                     let server = network::P2PServer::new(addr, pubkey);
                     server.start()?;
-                    
+
                     println!("🎧 Listening for connections...");
                     println!("   Press Ctrl+C to stop");
-                    
+
                     // Keep main thread alive
                     loop {
                         std::thread::sleep(std::time::Duration::from_secs(1));
