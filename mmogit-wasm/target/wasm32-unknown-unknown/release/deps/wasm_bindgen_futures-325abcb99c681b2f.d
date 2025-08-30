@@ -1,0 +1,9 @@
+/Users/tyler.j.chrestoff/Code/RCALabs/mmogit/mmogit-wasm/target/wasm32-unknown-unknown/release/deps/wasm_bindgen_futures-325abcb99c681b2f.d: /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.50/src/lib.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.50/src/queue.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.50/src/task/singlethread.rs
+
+/Users/tyler.j.chrestoff/Code/RCALabs/mmogit/mmogit-wasm/target/wasm32-unknown-unknown/release/deps/libwasm_bindgen_futures-325abcb99c681b2f.rlib: /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.50/src/lib.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.50/src/queue.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.50/src/task/singlethread.rs
+
+/Users/tyler.j.chrestoff/Code/RCALabs/mmogit/mmogit-wasm/target/wasm32-unknown-unknown/release/deps/libwasm_bindgen_futures-325abcb99c681b2f.rmeta: /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.50/src/lib.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.50/src/queue.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.50/src/task/singlethread.rs
+
+/Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.50/src/lib.rs:
+/Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.50/src/queue.rs:
+/Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wasm-bindgen-futures-0.4.50/src/task/singlethread.rs:

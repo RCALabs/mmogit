@@ -210,6 +210,59 @@
             }
         }
     </style>
+    <script type="module">
+        import init, { VisitorBook } from './wasm/mmogit_wasm.js';
+        
+        let visitorBook = null;
+        let visitorCount = 0;
+        
+        async function initGuestBook() {
+            await init();
+            
+            // Create ephemeral visitor identity
+            visitorBook = new VisitorBook();
+            const pubkey = visitorBook.get_pubkey();
+            
+            // Update UI
+            document.getElementById('visitor-pubkey').textContent = 
+                `${pubkey.slice(0, 8)}...${pubkey.slice(-8)}`;
+            
+            // Get visitor count (would normally fetch from repo)
+            visitorCount = Math.floor(Math.random() * 1000) + 1; // Placeholder
+            document.getElementById('visitor-count').textContent = visitorCount;
+        }
+        
+        window.signGuestBook = async function() {
+            if (!visitorBook) return;
+            
+            const message = document.getElementById('visitor-message').value || 
+                "Just looking up 🌟";
+            const userAgent = navigator.userAgent;
+            
+            try {
+                // Sign the visit
+                const signedMessage = visitorBook.sign_visit(message, userAgent);
+                const commitMsg = visitorBook.create_commit_message(visitorCount + 1);
+                
+                // Show success
+                document.getElementById('sign-result').innerHTML = 
+                    `<strong>✅ Signed!</strong><br>
+                    Your visit has been cryptographically signed.<br>
+                    <small>Pubkey: ${visitorBook.get_pubkey().slice(0, 16)}...</small>`;
+                
+                // In production: POST to GitHub via proxy
+                console.log('Signed message:', signedMessage);
+                console.log('Commit message:', commitMsg);
+                
+            } catch (e) {
+                document.getElementById('sign-result').textContent = 
+                    `Error: ${e}`;
+            }
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', initGuestBook);
+    </script>
 </head>
 <body>
     <header>
@@ -391,6 +444,41 @@ Protocol:
                 right to remember?
             </p>
         </div>
+        
+        <section>
+            <h2>🌟 Sign the Sovereign Guest Book</h2>
+            
+            <p>
+                Be part of history. Your browser generates an ephemeral Ed25519 identity. 
+                Your visit gets cryptographically signed. No cookies, no tracking - just 
+                pure cryptographic proof that you looked up with us.
+            </p>
+            
+            <div style="background: rgba(255,140,66,0.05); padding: 2rem; margin: 2rem 0; border: 1px solid var(--accent);">
+                <p><strong>Visitor #<span id="visitor-count">...</span></strong></p>
+                <p>Your ephemeral identity: <code id="visitor-pubkey">generating...</code></p>
+                
+                <div style="margin: 1.5rem 0;">
+                    <input type="text" 
+                           id="visitor-message" 
+                           placeholder="Leave a message (optional)" 
+                           style="width: 100%; padding: 0.75rem; background: var(--bg); color: var(--fg); border: 1px solid var(--dim); font-family: inherit;">
+                </div>
+                
+                <button onclick="signGuestBook()" 
+                        style="padding: 1rem 2rem; background: var(--accent); color: var(--bg); border: none; cursor: pointer; font-family: inherit; font-weight: bold;">
+                    Sign the Guest Book
+                </button>
+                
+                <div id="sign-result" style="margin-top: 1.5rem; color: var(--secondary);"></div>
+            </div>
+            
+            <p style="font-size: 0.9em; color: var(--dim);">
+                <a href="https://github.com/RCALabs/mmogit-visitor-book" style="color: var(--secondary);">
+                    View all visitors in the public repo →
+                </a>
+            </p>
+        </section>
         
         <section>
             <h2>Join Us in Building Tomorrow</h2>

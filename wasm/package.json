@@ -1,0 +1,14 @@
+{
+  "name": "mmogit-wasm",
+  "version": "0.1.0",
+  "files": [
+    "mmogit_wasm_bg.wasm",
+    "mmogit_wasm.js",
+    "mmogit_wasm.d.ts"
+  ],
+  "module": "mmogit_wasm.js",
+  "types": "mmogit_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

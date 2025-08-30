@@ -1,0 +1,10 @@
+/Users/tyler.j.chrestoff/Code/RCALabs/mmogit/mmogit-wasm/target/wasm32-unknown-unknown/release/deps/ppv_lite86-4241025d77c501bf.d: /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/lib.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/soft.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/types.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/generic.rs
+
+/Users/tyler.j.chrestoff/Code/RCALabs/mmogit/mmogit-wasm/target/wasm32-unknown-unknown/release/deps/libppv_lite86-4241025d77c501bf.rlib: /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/lib.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/soft.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/types.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/generic.rs
+
+/Users/tyler.j.chrestoff/Code/RCALabs/mmogit/mmogit-wasm/target/wasm32-unknown-unknown/release/deps/libppv_lite86-4241025d77c501bf.rmeta: /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/lib.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/soft.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/types.rs /Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/generic.rs
+
+/Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/lib.rs:
+/Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/soft.rs:
+/Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/types.rs:
+/Users/tyler.j.chrestoff/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ppv-lite86-0.2.21/src/generic.rs:
