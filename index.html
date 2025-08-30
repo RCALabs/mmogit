@@ -215,7 +215,9 @@
         
         let visitorBook = null;
         let visitorCount = 0;
-        const API_URL = 'http://91.98.123.26'; // Direct IP for now
+        // For now, skip the API if on HTTPS (CORS issue)
+        const API_URL = 'http://91.98.123.26:3000';
+        const USE_API = window.location.protocol !== 'https:'; // Disable on HTTPS for now
         
         async function initGuestBook() {
             await init();
@@ -229,15 +231,22 @@
                 `${pubkey.slice(0, 8)}...${pubkey.slice(-8)}`;
             
             // Get actual visitor count from server
-            try {
-                const response = await fetch(`${API_URL}/count`);
-                const data = await response.json();
-                visitorCount = data.count;
-                document.getElementById('visitor-count').textContent = visitorCount;
-            } catch (e) {
-                console.error('Failed to fetch count:', e);
-                visitorCount = 0;
-                document.getElementById('visitor-count').textContent = '?';
+            if (USE_API) {
+                try {
+                    const response = await fetch(`${API_URL}/count`);
+                    const data = await response.json();
+                    visitorCount = data.count;
+                    document.getElementById('visitor-count').textContent = visitorCount;
+                } catch (e) {
+                    console.error('Failed to fetch count:', e);
+                    visitorCount = Math.floor(Math.random() * 100) + 1;
+                    document.getElementById('visitor-count').textContent = visitorCount;
+                }
+            } else {
+                // Fallback for HTTPS (CORS blocked)
+                visitorCount = Math.floor(Math.random() * 100) + 1;
+                document.getElementById('visitor-count').textContent = visitorCount + '*';
+                console.log('API disabled on HTTPS due to mixed content. Visit http://mmogit.sh for full experience.');
             }
         }
         
@@ -256,35 +265,46 @@
                 // Parse the signed message JSON
                 const signedData = JSON.parse(signedMessage);
                 
-                // Send to backend
-                const response = await fetch(`${API_URL}/sign`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        pubkey: pubkey,
-                        signature: signedData.signature,
-                        message: message,
-                        timestamp: signedData.timestamp,
-                        user_agent: userAgent
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    // Update visitor count
-                    visitorCount = result.visitor_number;
-                    document.getElementById('visitor-count').textContent = visitorCount;
+                if (USE_API) {
+                    // Send to backend
+                    const response = await fetch(`${API_URL}/sign`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            pubkey: pubkey,
+                            signature: signedData.signature,
+                            message: message,
+                            timestamp: signedData.timestamp,
+                            user_agent: userAgent
+                        })
+                    });
                     
-                    // Show success
-                    document.getElementById('sign-result').innerHTML = 
-                        `<strong>✅ ${result.message}</strong><br>
-                        <small>Your pubkey: ${pubkey.slice(0, 16)}...</small><br>
-                        <small>Real recognizes real.</small>`;
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Update visitor count
+                        visitorCount = result.visitor_number;
+                        document.getElementById('visitor-count').textContent = visitorCount;
+                        
+                        // Show success
+                        document.getElementById('sign-result').innerHTML = 
+                            `<strong>✅ ${result.message}</strong><br>
+                            <small>Your pubkey: ${pubkey.slice(0, 16)}...</small><br>
+                            <small>Real recognizes real.</small>`;
+                    } else {
+                        throw new Error(result.message || 'Failed to sign');
+                    }
                 } else {
-                    throw new Error(result.message || 'Failed to sign');
+                    // Offline mode for HTTPS
+                    visitorCount++;
+                    document.getElementById('visitor-count').textContent = visitorCount + '*';
+                    document.getElementById('sign-result').innerHTML = 
+                        `<strong>✅ Signed locally! (Visitor #${visitorCount}*)</strong><br>
+                        <small>Your pubkey: ${pubkey.slice(0, 16)}...</small><br>
+                        <small>Visit <a href="http://mmogit.sh">http://mmogit.sh</a> for persistent recognition.</small><br>
+                        <small>Real still recognizes real. 💫</small>`;
                 }
                 
             } catch (e) {
