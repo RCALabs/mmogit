@@ -1,0 +1,15 @@
+[Unit]
+Description=MMOGIT Visitor Book API
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/visitor-book-api
+ExecStart=/root/visitor-book-api/target/release/visitor-book-api
+Restart=on-failure
+RestartSec=10
+Environment="RUST_LOG=info"
+
+[Install]
+WantedBy=multi-user.target

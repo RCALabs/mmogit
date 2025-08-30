@@ -215,6 +215,7 @@
         
         let visitorBook = null;
         let visitorCount = 0;
+        const API_URL = 'http://91.98.123.26'; // Direct IP for now
         
         async function initGuestBook() {
             await init();
@@ -227,9 +228,17 @@
             document.getElementById('visitor-pubkey').textContent = 
                 `${pubkey.slice(0, 8)}...${pubkey.slice(-8)}`;
             
-            // Get visitor count (would normally fetch from repo)
-            visitorCount = Math.floor(Math.random() * 1000) + 1; // Placeholder
-            document.getElementById('visitor-count').textContent = visitorCount;
+            // Get actual visitor count from server
+            try {
+                const response = await fetch(`${API_URL}/count`);
+                const data = await response.json();
+                visitorCount = data.count;
+                document.getElementById('visitor-count').textContent = visitorCount;
+            } catch (e) {
+                console.error('Failed to fetch count:', e);
+                visitorCount = 0;
+                document.getElementById('visitor-count').textContent = '?';
+            }
         }
         
         window.signGuestBook = async function() {
@@ -242,21 +251,46 @@
             try {
                 // Sign the visit
                 const signedMessage = visitorBook.sign_visit(message, userAgent);
-                const commitMsg = visitorBook.create_commit_message(visitorCount + 1);
+                const pubkey = visitorBook.get_pubkey();
                 
-                // Show success
-                document.getElementById('sign-result').innerHTML = 
-                    `<strong>✅ Signed!</strong><br>
-                    Your visit has been cryptographically signed.<br>
-                    <small>Pubkey: ${visitorBook.get_pubkey().slice(0, 16)}...</small>`;
+                // Parse the signed message JSON
+                const signedData = JSON.parse(signedMessage);
                 
-                // In production: POST to GitHub via proxy
-                console.log('Signed message:', signedMessage);
-                console.log('Commit message:', commitMsg);
+                // Send to backend
+                const response = await fetch(`${API_URL}/sign`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        pubkey: pubkey,
+                        signature: signedData.signature,
+                        message: message,
+                        timestamp: signedData.timestamp,
+                        user_agent: userAgent
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update visitor count
+                    visitorCount = result.visitor_number;
+                    document.getElementById('visitor-count').textContent = visitorCount;
+                    
+                    // Show success
+                    document.getElementById('sign-result').innerHTML = 
+                        `<strong>✅ ${result.message}</strong><br>
+                        <small>Your pubkey: ${pubkey.slice(0, 16)}...</small><br>
+                        <small>Real recognizes real.</small>`;
+                } else {
+                    throw new Error(result.message || 'Failed to sign');
+                }
                 
             } catch (e) {
-                document.getElementById('sign-result').textContent = 
-                    `Error: ${e}`;
+                document.getElementById('sign-result').innerHTML = 
+                    `<strong>❌ Error:</strong> ${e.message}<br>
+                    <small>But you're still recognized. 💫</small>`;
             }
         }
         
