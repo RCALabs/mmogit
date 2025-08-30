@@ -215,9 +215,11 @@
         
         let visitorBook = null;
         let visitorCount = 0;
-        // For now, skip the API if on HTTPS (CORS issue)
-        const API_URL = 'http://91.98.123.26:3000';
-        const USE_API = window.location.protocol !== 'https:'; // Disable on HTTPS for now
+        // Use Cloudflare Worker proxy for HTTPS
+        const API_URL = window.location.protocol === 'https:' 
+            ? 'https://mmogit-visitor-book-api.circuitrylabs.workers.dev'
+            : 'http://91.98.123.26:3000';
+        const USE_API = true; // Always use API now
         
         async function initGuestBook() {
             await init();

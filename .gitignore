@@ -39,3 +39,21 @@ SUBSTACK_DRAFT.md
 REDDIT_POSTS.md
 docs/randomness/
 docs/from-claude-web/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Wrangler
+.wrangler/
+.dev.vars
+
+# WASM build artifacts
+mmogit-wasm/pkg/
+wasm/mmogit_wasm_bg.wasm.d.ts
+
+# Temp files
+*.tar.gz

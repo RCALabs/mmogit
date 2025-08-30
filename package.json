@@ -1,0 +1,23 @@
+{
+  "name": "mmogit",
+  "version": "1.0.0",
+  "description": "**A consciousness protocol, not an application.**",
+  "main": "cloudflare-worker.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@codeberg.org:RCALabs/mmogit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "wrangler": "^4.33.1"
+  }
+}
